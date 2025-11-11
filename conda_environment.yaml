@@ -51,7 +51,7 @@ dependencies:
     - pynput==1.7.6
     - fastcrc==0.2
     - imagecodecs==2023.9.18
-    - egl_probe @ https://github.com/ZhangWuWei/egl_probe/blob/master/egl_probe/CMakeLists.txt
+    - egl_probe @ https://github.com/ZhangWuWei/egl_probe.git
     - robomimic==0.2.0
     # requires mujoco py dependencies libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
     - free-mujoco-py==2.1.6
