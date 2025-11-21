@@ -1,4 +1,4 @@
-apt-get install libopencv-dev libopencv-contrib-dev
+apt-get install libopencv-dev libopencv-contrib-dev -y
 git clone https://github.com/ceres-solver/ceres-solver
 cd ceres-solver
 git checkout 2.1.0
