@@ -17,7 +17,7 @@ cd ../../
 mkdir -p build && cd build && cmake ..
 make -j
 
-cd ../
+cd ../../
 
 conda activate umi
 pip install -r requirements.txt
