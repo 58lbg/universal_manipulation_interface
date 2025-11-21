@@ -12,12 +12,12 @@ cd pyTheiaSfM && git checkout 69c3d37 && mkdir -p build && cd build
 cmake .. && make -j
 make install
 
-cd ../../
+cd ../../../
 
 mkdir -p build && cd build && cmake ..
 make -j
 
-cd ../../
+cd ../
 
 conda activate umi
 pip install -r requirements.txt
