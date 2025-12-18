@@ -210,6 +210,20 @@ def detect_localize_aruco_tags(
         # 关键：fisheye 的 D 是 4 维
         if D is not None and len(np.array(D).flatten()) == 4:
             is_fisheye = True
+    else:
+        h, w = img.shape[:2]
+
+        fx = fy = 0.9 * w  # 或 w，经验值
+        cx = w / 2
+        cy = h / 2
+
+        K = np.array([
+            [fx, 0, cx],
+            [0, fy, cy],
+            [0, 0, 1]
+        ], dtype=np.float32)
+
+        D = np.zeros(5, dtype=np.float32)
 
 
     # -------- ArUco detector --------
