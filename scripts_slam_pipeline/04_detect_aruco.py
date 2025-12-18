@@ -1,3 +1,9 @@
+"""
+python scripts_slam_pipeline/04_detect_aruco.py \
+-i data_workspace/cup_in_the_wild/20240105_zhenjia_packard_2nd_conference_room/demos \
+-ci data_workspace/toss_objects/20231113/calibration/gopro_intrinsics_2_7k.json \
+-ac data_workspace/toss_objects/20231113/calibration/aruco_config.yaml
+"""
 # %%
 import sys
 import os
@@ -7,78 +13,71 @@ sys.path.append(ROOT_DIR)
 os.chdir(ROOT_DIR)
 
 # %%
+import pathlib
 import click
+import multiprocessing
+import subprocess
+import concurrent.futures
 from tqdm import tqdm
-import yaml
-import json
-import av
-import numpy as np
-import cv2
-import pickle
-
-from umi.common.cv_util import (
-    parse_aruco_config,
-    parse_fisheye_intrinsics,
-    convert_fisheye_intrinsics_resolution,
-    detect_localize_aruco_tags,
-    draw_predefined_mask
-)
 
 # %%
 @click.command()
-@click.option('-i', '--input', required=True)
-@click.option('-o', '--output', required=True)
-@click.option('-ij', '--intrinsics_json', required=False)
-@click.option('-ay', '--aruco_yaml', required=True)
-@click.option('-n', '--num_workers', type=int, default=1)
-def main(input, output, intrinsics_json, aruco_yaml, num_workers):
-    cv2.setNumThreads(num_workers)
+@click.option('-i', '--input_dir', required=True, help='Directory for demos folder')
+@click.option('-ci', '--camera_intrinsics', required=True, help='Camera intrinsics json file (2.7k)')
+@click.option('-ac', '--aruco_yaml', required=True, help='Aruco config yaml file')
+@click.option('-n', '--num_workers', type=int, default=None)
+def main(input_dir, camera_intrinsics, aruco_yaml, num_workers):
+    input_dir = pathlib.Path(os.path.expanduser(input_dir))
+    input_video_dirs = [x.parent for x in input_dir.glob('*/raw_video.mp4')]
+    print(f'Found {len(input_video_dirs)} video dirs')
 
-    # load aruco config
-    aruco_config = parse_aruco_config(yaml.safe_load(open(aruco_yaml, 'r')))
-    aruco_dict = aruco_config['aruco_dict']
-    marker_size_map = aruco_config['marker_size_map']
+    assert os.path.isfile(camera_intrinsics)
+    assert os.path.isfile(aruco_yaml)
 
-    # load intrinsics
-    if intrinsics_json:
-        raw_fisheye_intr = parse_fisheye_intrinsics(json.load(open(intrinsics_json, 'r')))
-    else:
-        raw_fisheye_intr = None
+    if num_workers is None:
+        num_workers = multiprocessing.cpu_count()
 
-    results = list()
-    with av.open(os.path.expanduser(input)) as in_container:
-        in_stream = in_container.streams.video[0]
-        in_stream.thread_type = "AUTO"
-        in_stream.thread_count = num_workers
+    script_path = pathlib.Path(__file__).parent.parent.joinpath('scripts', 'detect_aruco.py')
 
-        in_res = np.array([in_stream.height, in_stream.width])[::-1]
-        if raw_fisheye_intr:
-            fisheye_intr = convert_fisheye_intrinsics_resolution(
-                opencv_intr_dict=raw_fisheye_intr, target_resolution=in_res)
-        else:
-            fisheye_intr = None
+    with tqdm(total=len(input_video_dirs)) as pbar:
+        # one chunk per thread, therefore no synchronization needed
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = set()
+            for video_dir in tqdm(input_video_dirs):
+                video_dir = video_dir.absolute()
+                video_path = video_dir.joinpath('raw_video.mp4')
+                pkl_path = video_dir.joinpath('tag_detection.pkl')
+                if pkl_path.is_file():
+                    print(f"tag_detection.pkl already exists, skipping {video_dir.name}")
+                    continue
 
-        for i, frame in tqdm(enumerate(in_container.decode(in_stream)), total=in_stream.frames):
-            img = frame.to_ndarray(format='rgb24')
-            frame_cts_sec = frame.pts * in_stream.time_base
-            # avoid detecting tags in the mirror
-            img = draw_predefined_mask(img, color=(0,0,0), mirror=True, gripper=False, finger=False)
-            tag_dict = detect_localize_aruco_tags(
-                img=img,
-                aruco_dict=aruco_dict,
-                marker_size_map=marker_size_map,
-                fisheye_intr_dict=fisheye_intr,
-                refine_subpix=True
-            )
-            result = {
-                'frame_idx': i,
-                'time': float(frame_cts_sec),
-                'tag_dict': tag_dict
-            }
-            results.append(result)
+                # run SLAM
+                cmd = [
+                    'python', script_path,
+                    '--input', str(video_path),
+                    '--output', str(pkl_path),
+                    '--intrinsics_json', camera_intrinsics,
+                    '--aruco_yaml', aruco_yaml,
+                    '--num_workers', '1'
+                ]
 
-    # dump
-    pickle.dump(results, open(os.path.expanduser(output), 'wb'))
+                if len(futures) >= num_workers:
+                    # limit number of inflight tasks
+                    completed, futures = concurrent.futures.wait(futures,
+                        return_when=concurrent.futures.FIRST_COMPLETED)
+                    pbar.update(len(completed))
+
+                futures.add(executor.submit(
+                    lambda x: subprocess.run(x,
+                        capture_output=True),
+                    cmd))
+                # futures.add(executor.submit(lambda x: print(' '.join(x)), cmd))
+
+            completed, futures = concurrent.futures.wait(futures)
+            pbar.update(len(completed))
+
+    print("Done! Result:")
+    print([x.result() for x in completed])
 
 # %%
 if __name__ == "__main__":
