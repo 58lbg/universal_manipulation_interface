@@ -28,9 +28,9 @@ from umi.common.cv_util import (
 @click.command()
 @click.option('-i', '--input', required=True)
 @click.option('-o', '--output', required=True)
-@click.option('-ij', '--intrinsics_json', required=False)
+@click.option('-ij', '--intrinsics_json', required=True)
 @click.option('-ay', '--aruco_yaml', required=True)
-@click.option('-n', '--num_workers', type=int, default=1)
+@click.option('-n', '--num_workers', type=int, default=4)
 def main(input, output, intrinsics_json, aruco_yaml, num_workers):
     cv2.setNumThreads(num_workers)
 
@@ -40,10 +40,7 @@ def main(input, output, intrinsics_json, aruco_yaml, num_workers):
     marker_size_map = aruco_config['marker_size_map']
 
     # load intrinsics
-    if intrinsics_json:
-        raw_fisheye_intr = parse_fisheye_intrinsics(json.load(open(intrinsics_json, 'r')))
-    else:
-        raw_fisheye_intr = None
+    raw_fisheye_intr = parse_fisheye_intrinsics(json.load(open(intrinsics_json, 'r')))
 
     results = list()
     with av.open(os.path.expanduser(input)) as in_container:
@@ -52,11 +49,8 @@ def main(input, output, intrinsics_json, aruco_yaml, num_workers):
         in_stream.thread_count = num_workers
 
         in_res = np.array([in_stream.height, in_stream.width])[::-1]
-        if raw_fisheye_intr:
-            fisheye_intr = convert_fisheye_intrinsics_resolution(
-                opencv_intr_dict=raw_fisheye_intr, target_resolution=in_res)
-        else:
-            fisheye_intr = None
+        fisheye_intr = convert_fisheye_intrinsics_resolution(
+            opencv_intr_dict=raw_fisheye_intr, target_resolution=in_res)
 
         for i, frame in tqdm(enumerate(in_container.decode(in_stream)), total=in_stream.frames):
             img = frame.to_ndarray(format='rgb24')

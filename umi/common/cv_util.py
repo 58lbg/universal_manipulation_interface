@@ -162,16 +162,10 @@ def detect_localize_aruco_tags(
         img: np.ndarray, 
         aruco_dict: cv2.aruco.Dictionary, 
         marker_size_map: Dict[int, float], 
-        fisheye_intr_dict: Dict[str, np.ndarray],
+        fisheye_intr_dict: Dict[str, np.ndarray], 
         refine_subpix: bool=True):
-    if fisheye_intr_dict is None:
-        K = None
-        D = None
-        is_fisheye = False
-    else:
-        K = fisheye_intr_dict.get('K', None)
-        D = fisheye_intr_dict.get('D', None)
-        is_fisheye = D is not None
+    K = fisheye_intr_dict['K']
+    D = fisheye_intr_dict['D']
     param = cv2.aruco.DetectorParameters()
     if refine_subpix:
         param.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
@@ -187,15 +181,9 @@ def detect_localize_aruco_tags(
             continue
         
         marker_size_m = marker_size_map[this_id]
-        if is_fisheye:
-            image_points = cv2.fisheye.undistortPoints(this_corners, K, D, P=K)
-            dist_coeffs = np.zeros((1, 5))
-        else:
-            # pinhole / 无畸变：直接用原始角点
-            image_points = this_corners
-            dist_coeffs = D if D is not None else None
+        undistorted = cv2.fisheye.undistortPoints(this_corners, K, D, P=K)
         rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(
-            image_points, marker_size_m, K, dist_coeffs)
+            undistorted, marker_size_m, K, np.zeros((1,5)))
         tag_dict[this_id] = {
             'rvec': rvec.squeeze(),
             'tvec': tvec.squeeze(),
