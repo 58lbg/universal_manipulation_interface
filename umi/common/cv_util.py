@@ -234,7 +234,7 @@ def detect_localize_aruco_tags(
     corners, ids, _ = cv2.aruco.detectMarkers(
         image=img, dictionary=aruco_dict, parameters=param)
 
-    print(corners, ids)
+    # print(corners, ids)
 
     if K is None:
         return {}
