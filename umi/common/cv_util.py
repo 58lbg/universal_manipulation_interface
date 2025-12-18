@@ -223,7 +223,7 @@ def detect_localize_aruco_tags(
     print(corners, ids)
 
     if K is None:
-        raise ValueError("Camera intrinsic K must not be None")
+        return {}
 
     if ids is None or len(corners) == 0:
         return {}
