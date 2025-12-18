@@ -158,7 +158,7 @@ def get_aruco_dict(predefined:str
     return cv2.aruco.getPredefinedDictionary(
         getattr(cv2.aruco, predefined))
 
-def detect_localize_aruco_tags(
+def detect_localize_aruco_tags1(
         img: np.ndarray, 
         aruco_dict: cv2.aruco.Dictionary, 
         marker_size_map: Dict[int, float], 
@@ -189,6 +189,76 @@ def detect_localize_aruco_tags(
             'tvec': tvec.squeeze(),
             'corners': this_corners.squeeze()
         }
+    return tag_dict
+
+
+def detect_localize_aruco_tags(
+        img: np.ndarray,
+        aruco_dict: cv2.aruco.Dictionary,
+        marker_size_map: Dict[int, float],
+        fisheye_intr_dict: Dict[str, np.ndarray],
+        refine_subpix: bool = True):
+    # -------- intrinsics 处理 --------
+    K = None
+    D = None
+    is_fisheye = False
+
+    if fisheye_intr_dict is not None:
+        K = fisheye_intr_dict.get('K', None)
+        D = fisheye_intr_dict.get('D', None)
+
+        # 关键：fisheye 的 D 是 4 维
+        if D is not None and len(np.array(D).flatten()) == 4:
+            is_fisheye = True
+
+
+    # -------- ArUco detector --------
+    param = cv2.aruco.DetectorParameters()
+    if refine_subpix:
+        param.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+
+    corners, ids, _ = cv2.aruco.detectMarkers(
+        image=img, dictionary=aruco_dict, parameters=param)
+
+    print(corners, ids)
+
+    if K is None:
+        raise ValueError("Camera intrinsic K must not be None")
+
+    if ids is None or len(corners) == 0:
+        return {}
+
+    tag_dict = {}
+
+    for this_id, this_corners in zip(ids, corners):
+        this_id = int(this_id[0])
+        if this_id not in marker_size_map:
+            continue
+
+        marker_size_m = marker_size_map[this_id]
+
+        # -------- 选择正确的模型 --------
+        if is_fisheye:
+            image_points = cv2.fisheye.undistortPoints(
+                this_corners, K, D, P=K)
+            dist_coeffs = np.zeros((1, 5))
+        else:
+            image_points = this_corners
+            dist_coeffs = D if D is not None else None
+
+        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+            image_points,
+            marker_size_m,
+            K,
+            dist_coeffs
+        )
+
+        tag_dict[this_id] = {
+            'rvec': rvec.squeeze(),
+            'tvec': tvec.squeeze(),
+            'corners': this_corners.squeeze()
+        }
+
     return tag_dict
 
 def get_charuco_board(
