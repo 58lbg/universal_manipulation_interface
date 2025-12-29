@@ -30,7 +30,7 @@ from umi.real_world.real_inference_util import (
 # =========================
 # 1. 加载 policy checkpoint
 # =========================
-ckpt_path = "your_checkpoint.ckpt"  # ← 修改成你的 ckpt
+ckpt_path = "data/outputs/2025.12.28/16.48.18_train_diffusion_unet_timm_umi/checkpoints/latest.ckpt"  # ← 修改成你的 ckpt
 
 # 用 dill 加载（与你 eval_real_umi.py 一致）
 payload = torch.load(
