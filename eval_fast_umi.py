@@ -9,9 +9,12 @@ USB RGB + MujocoAR iPhone pose -> obs -> policy -> print action
 import time
 import cv2
 import torch
+import hydra
 import dill
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+
+from diffusion_policy.workspace.base_workspace import BaseWorkspace
 
 # =========================
 # Mujoco AR（与你采集代码一致）
@@ -42,13 +45,18 @@ payload = torch.load(
 cfg = payload["cfg"]
 
 # 构造 workspace
-cls = __import__(
-    cfg._target_,
-    fromlist=['']
-).__dict__[cfg._target_.split('.')[-1]]
+# cls = __import__(
+#     cfg._target_,
+#     fromlist=['']
+# ).__dict__[cfg._target_.split('.')[-1]]
+#
+# workspace = cls(cfg)
+# workspace.load_payload(payload)
 
+cls = hydra.utils.get_class(cfg._target_)
 workspace = cls(cfg)
-workspace.load_payload(payload)
+workspace: BaseWorkspace
+workspace.load_payload(payload, exclude_keys=None, include_keys=None)
 
 # 选择 EMA / 原模型
 policy = workspace.model
