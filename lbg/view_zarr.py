@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # ===============================
 # 1. 打开 zarr 数据
 # ===============================
-zarr_path = './dataset/dp_train_data.zarr.zip'   # ← 改成你的路径
+zarr_path = './example_demo_session/dataset.zarr.zip'   # ← 改成你的路径
 root = zarr.open(zarr_path, mode="r")
 
 # ===============================
