@@ -67,7 +67,7 @@ connector.start()
 # =========================
 # 3. 初始化 USB 摄像头
 # =========================
-cap = cv2.VideoCapture("/dev/video2")  # 与采集代码一致
+cap = cv2.VideoCapture("/dev/video0")  # 与采集代码一致
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 540)
 assert cap.isOpened(), "USB camera open failed"
