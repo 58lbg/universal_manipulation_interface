@@ -170,6 +170,7 @@ while True:
         lambda x: torch.from_numpy(x).unsqueeze(0).to("cuda")
     )
 
+    print(obs_dict.keys())
     # =========================
     # policy 推理
     # =========================
