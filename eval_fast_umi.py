@@ -170,7 +170,8 @@ while True:
         lambda x: torch.from_numpy(x).unsqueeze(0).to("cuda")
     )
 
-    print(obs_dict.keys())
+    for key, value in obs_dict.items():
+        print(f'{key}:{value.shape}')
     # =========================
     # policy 推理
     # =========================
