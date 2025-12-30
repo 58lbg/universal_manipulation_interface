@@ -22,6 +22,8 @@ ckpt_path = "data/outputs/2025.12.28/16.48.18_train_diffusion_unet_timm_umi/chec
 payload = torch.load(open(ckpt_path, "rb"), map_location="cpu", pickle_module=dill)
 cfg = payload["cfg"]
 
+print("size: : " + cfg.task.obs_horizon)
+
 cls = hydra.utils.get_class(cfg._target_)
 workspace = cls(cfg)
 workspace: BaseWorkspace
