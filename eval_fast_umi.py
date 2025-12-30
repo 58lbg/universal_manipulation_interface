@@ -159,7 +159,7 @@ while True:
     obs_dict_np = get_real_umi_obs_dict(
         env_obs=env_obs,
         shape_meta=cfg.task.shape_meta,
-        obs_pose_repr=cfg.task.obs_pose_repr,
+        obs_pose_repr=cfg.task.pose_repr.obs_pose_repr,
         tx_robot1_robot0=None,
         episode_start_pose=episode_start_pose
     )
@@ -183,7 +183,7 @@ while True:
     action = get_real_umi_action(
         raw_action=raw_action,
         env_obs=env_obs,
-        action_pose_repr=cfg.task.action_pose_repr
+        action_pose_repr=cfg.task.pose_repr.action_pose_repr
     )
 
     # =========================
