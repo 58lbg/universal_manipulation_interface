@@ -120,7 +120,7 @@ def main(input_dir, map_path, docker_image, num_workers, max_lost_frames, timeou
                     '--input_imu_json', str(json_path),
                     '--output_trajectory_csv', str(csv_path),
                     '--load_map', str(map_mount_target),
-                    '--mask_img', str(mask_path),
+                    # '--mask_img', str(mask_path),
                     '--max_lost_frames', str(max_lost_frames)
                 ]
 
