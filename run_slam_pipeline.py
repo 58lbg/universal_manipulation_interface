@@ -90,7 +90,7 @@ def main(session_dir, calibration_dir):
             'python', str(script_path),
             '--input_dir', str(demo_dir),
             '--camera_intrinsics', str(camera_intrinsics),
-            '--aruco_yaml', str(aruco_config)
+            # '--aruco_yaml', str(aruco_config)
         ]
         result = subprocess.run(cmd)
         assert result.returncode == 0
