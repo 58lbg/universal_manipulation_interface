@@ -114,13 +114,13 @@ def main(input_dir, map_path, docker_image, num_workers, max_lost_frames, timeou
                     docker_image,
                     '/ORB_SLAM3/Examples/Monocular-Inertial/gopro_slam',
                     '--vocabulary', '/ORB_SLAM3/Vocabulary/ORBvoc.txt',
-                    '--setting', '/ORB_SLAM3/Examples/Monocular-Inertial/gopro10_maxlens_fisheye_setting_v1_720.yaml',
-                    # '--setting', '/ORB_SLAM3/Examples/Monocular-Inertial/gopro9_wide_setting.yaml',
+                    # '--setting', '/ORB_SLAM3/Examples/Monocular-Inertial/gopro10_maxlens_fisheye_setting_v1_720.yaml',
+                    '--setting', '/ORB_SLAM3/Examples/Monocular-Inertial/gopro9_wide_setting.yaml',
                     '--input_video', str(video_path),
                     '--input_imu_json', str(json_path),
                     '--output_trajectory_csv', str(csv_path),
                     '--load_map', str(map_mount_target),
-                    # '--mask_img', str(mask_path),
+                    '--mask_img', str(mask_path),
                     '--max_lost_frames', str(max_lost_frames)
                 ]
 
