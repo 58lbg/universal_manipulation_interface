@@ -1,2 +1,10 @@
 数据样例
 https://real.stanford.edu/maniwav/data/wipe/demos/demo_C3464250587589_2024.02.07_17.26.19.216500/
+
+
+docker run -it lbg/orb_slam3:latest /bin/bash
+
+docker ps | grep "lbg"
+docker images | grep 'lbg'
+
+docker commit [选项] 容器ID或容器名 新镜像名[:标签]
