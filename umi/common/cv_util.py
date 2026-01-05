@@ -203,6 +203,8 @@ def detect_localize_aruco_tags(
     D = None
     is_fisheye = False
 
+    fisheye_intr_dict = None
+
     if fisheye_intr_dict is not None:
         K = fisheye_intr_dict.get('K', None)
         D = fisheye_intr_dict.get('D', None)
