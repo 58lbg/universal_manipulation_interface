@@ -92,8 +92,8 @@ def main(input_dir, map_path, docker_image, no_docker_pull, no_mask):
             '--mask_img', str(mask_path)
         ])
 
-    stdout_path = video_dir.joinpath('slam_stdout.txt')
-    stderr_path = video_dir.joinpath('slam_stderr.txt')
+    stdout_path = video_dir.joinpath('map_slam_stdout.txt')
+    stderr_path = video_dir.joinpath('map_slam_stderr.txt')
 
     result = subprocess.run(
         cmd,
