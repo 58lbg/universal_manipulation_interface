@@ -240,7 +240,7 @@ class DistortionCorrector:
 def main():
     base_dir = os.path.dirname(__file__)
     yaml_path = os.path.join(base_dir, "setting2.yaml")
-    img_path = os.path.join(base_dir, "input2.png")
+    img_path = os.path.join(base_dir, "input2.jpg")
 
     try:
         corrector = DistortionCorrector(img_path, yaml_path)
