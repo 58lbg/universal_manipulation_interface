@@ -167,9 +167,3 @@ if __name__ == "__main__":
     out_path2 = os.path.join(base_dir, "undistorted_standard.png")
     cv2.imwrite(out_path2, undistorted2)
     print(f"已保存标准去畸变结果到: {out_path2}")
-
-    # 可视化比较
-    combined = np.hstack([img, undistorted2])
-    cv2.imshow("原始 vs 去畸变", combined)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
