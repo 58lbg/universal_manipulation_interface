@@ -175,11 +175,11 @@ class DistortionCorrector:
     def save_result(self):
         undistorted = self.undistort_image()
         base_dir = os.path.dirname(__file__)
-        out_path = os.path.join(base_dir, "manual_corrected.png")
+        out_path = os.path.join(base_dir, "manual_corrected1.png")
         cv2.imwrite(out_path, undistorted)
 
         # 保存参数
-        param_path = os.path.join(base_dir, "corrected_params.yaml")
+        param_path = os.path.join(base_dir, "corrected_params1.yaml")
         with open(param_path, 'w') as f:
             f.write(f"# 手动调整后的畸变参数\n")
             f.write(f"k1: {self.current_D[0]:.10f}\n")
