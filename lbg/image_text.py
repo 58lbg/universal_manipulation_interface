@@ -1,13 +1,121 @@
 import cv2
-import yaml
 import numpy as np
+import yaml
 import os
 
 
-def load_camera_params(yaml_path):
+def detect_and_evaluate_straightness(img):
     """
-    从 YAML 读取相机内参和畸变参数
+    检测图像中的直线，评估直线度
     """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # 使用Canny边缘检测
+    edges = cv2.Canny(gray, 50, 150)
+
+    # 使用霍夫变换检测直线
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100,
+                            minLineLength=100, maxLineGap=10)
+
+    if lines is None:
+        return 0, img.copy()
+
+    # 计算直线的平均角度方差（衡量直线度的指标）
+    angles = []
+    line_img = img.copy()
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        angle = np.arctan2(y2 - y1, x2 - x1) * 180 / np.pi
+        angles.append(angle)
+        cv2.line(line_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+    # 计算角度方差（越小越直）
+    if len(angles) > 1:
+        angle_variance = np.var(angles)
+    else:
+        angle_variance = 1000  # 大值表示不好
+
+    return angle_variance, line_img
+
+
+def optimize_distortion_params(img, initial_D, fx, fy, cx, cy, orig_size):
+    """
+    自动优化畸变参数
+    """
+    h, w = img.shape[:2]
+    orig_w, orig_h = orig_size
+
+    best_D = initial_D.copy()
+    best_score = float('inf')
+    best_img = None
+
+    # 尝试在初始参数周围搜索
+    search_range = 0.05  # 搜索范围
+    steps = 5  # 搜索步数
+
+    print("开始自动优化畸变参数...")
+
+    for i in range(steps):
+        for j in range(steps):
+            for k in range(steps):
+                for l in range(steps):
+                    # 生成新的畸变参数
+                    test_D = initial_D.copy()
+                    test_D[0] = initial_D[0] + (i - steps // 2) * search_range / steps
+                    test_D[1] = initial_D[1] + (j - steps // 2) * search_range / steps
+                    test_D[2] = initial_D[2] + (k - steps // 2) * search_range / steps
+                    test_D[3] = initial_D[3] + (l - steps // 2) * search_range / steps
+
+                    # 缩放内参
+                    scale_x = w / orig_w
+                    scale_y = h / orig_h
+                    fx_new = fx * scale_x
+                    fy_new = fy * scale_y
+                    cx_new = cx * scale_x
+                    cy_new = cy * scale_y
+
+                    K = np.array([
+                        [fx_new, 0, cx_new],
+                        [0, fy_new, cy_new],
+                        [0, 0, 1]
+                    ], dtype=np.float64)
+
+                    # 去畸变
+                    undistorted = cv2.undistort(img, K, test_D[:4], None)
+
+                    # 评估直线度
+                    score, _ = detect_and_evaluate_straightness(undistorted)
+
+                    if score < best_score:
+                        best_score = score
+                        best_D = test_D.copy()
+                        best_img = undistorted.copy()
+
+                        print(f"找到更好的参数: k1={test_D[0]:.6f}, k2={test_D[1]:.6f}, "
+                              f"k3={test_D[2]:.6f}, k4={test_D[3]:.6f}, 评分={score:.4f}")
+
+    print(f"\n最佳参数:")
+    print(f"k1={best_D[0]:.10f}")
+    print(f"k2={best_D[1]:.10f}")
+    print(f"k3={best_D[2]:.10f}")
+    print(f"k4={best_D[3]:.10f}")
+    print(f"直线度评分: {best_score:.4f}")
+
+    return best_D, best_img, best_score
+
+
+def main_optimization():
+    base_dir = os.path.dirname(__file__)
+    yaml_path = os.path.join(base_dir, "setting2.yaml")
+    img_path = os.path.join(base_dir, "input2.png")
+
+    # 读取图片
+    img = cv2.imread(img_path)
+    if img is None:
+        print(f"无法读取图片: {img_path}")
+        return
+
+    # 读取相机参数
     with open(yaml_path, 'r') as f:
         cfg = yaml.safe_load(f)
 
@@ -16,8 +124,7 @@ def load_camera_params(yaml_path):
     cx = float(cfg['Camera1.cx'])
     cy = float(cfg['Camera1.cy'])
 
-    # Kannala-Brandt模型，但只提供了4个参数
-    D = np.array([
+    initial_D = np.array([
         float(cfg['Camera1.k1']),
         float(cfg['Camera1.k2']),
         float(cfg['Camera1.k3']),
@@ -27,19 +134,17 @@ def load_camera_params(yaml_path):
     orig_w = int(cfg['Camera.width'])
     orig_h = int(cfg['Camera.height'])
 
-    return fx, fy, cx, cy, D, orig_w, orig_h
+    print("原始参数:")
+    print(f"k1={initial_D[0]:.6f}, k2={initial_D[1]:.6f}, "
+          f"k3={initial_D[2]:.6f}, k4={initial_D[3]:.6f}")
 
+    # 评估原始图像的直线度
+    original_score, original_lines = detect_and_evaluate_straightness(img)
+    print(f"原始图像直线度评分: {original_score:.4f}")
 
-def undistort_fisheye_simple(img, fx, fy, cx, cy, D, orig_size, scale=1.0, balance=0.5):
-    """
-    使用OpenCV fisheye模块进行去畸变
-    """
-    h, w = img.shape[:2]
-    orig_w, orig_h = orig_size
-
-    # 缩放内参到输入图片尺寸
-    scale_x = w / orig_w
-    scale_y = h / orig_h
+    # 使用原始参数去畸变
+    scale_x = img.shape[1] / orig_w
+    scale_y = img.shape[0] / orig_h
     fx_new = fx * scale_x
     fy_new = fy * scale_y
     cx_new = cx * scale_x
@@ -51,164 +156,55 @@ def undistort_fisheye_simple(img, fx, fy, cx, cy, D, orig_size, scale=1.0, balan
         [0, 0, 1]
     ], dtype=np.float64)
 
-    # 输出图片尺寸
-    out_w = int(w * scale)
-    out_h = int(h * scale)
-    out_size = (out_w, out_h)
+    undistorted_original = cv2.undistort(img, K, initial_D[:4], None)
+    original_undistorted_score, original_undistorted_lines = detect_and_evaluate_straightness(undistorted_original)
+    print(f"使用原始参数去畸变后的直线度评分: {original_undistorted_score:.4f}")
 
-    # 估计新的相机矩阵
-    # balance参数控制视野保留程度：0=完全裁剪，1=保留所有
-    new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(
-        K, D, (w, h), np.eye(3),
-        balance=balance,  # 调整这个值
-        new_size=out_size
+    # 自动优化参数
+    best_D, best_img, best_score = optimize_distortion_params(
+        img, initial_D, fx, fy, cx, cy, (orig_w, orig_h)
     )
 
-    # 生成映射
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(
-        K, D, np.eye(3), new_K, out_size, cv2.CV_16SC2
-    )
-
-    # 重映射
-    undistorted = cv2.remap(
-        img, map1, map2,
-        interpolation=cv2.INTER_LINEAR,
-        borderMode=cv2.BORDER_CONSTANT
-    )
-
-    return undistorted, new_K
-
-
-def undistort_standard(img, fx, fy, cx, cy, D, orig_size, scale=1.0):
-    """
-    使用标准去畸变方法
-    """
-    h, w = img.shape[:2]
-    orig_w, orig_h = orig_size
-
-    # 缩放内参
-    scale_x = w / orig_w
-    scale_y = h / orig_h
-    fx_new = fx * scale_x
-    fy_new = fy * scale_y
-    cx_new = cx * scale_x
-    cy_new = cy * scale_y
-
-    K = np.array([
-        [fx_new, 0, cx_new],
-        [0, fy_new, cy_new],
-        [0, 0, 1]
-    ], dtype=np.float64)
-
-    out_w = int(w * scale)
-    out_h = int(h * scale)
-
-    # 对于畸变参数，使用前4个（标准的径向畸变）
-    # alpha参数控制视野保留：0=完全裁剪，1=保留所有
-    new_K, roi = cv2.getOptimalNewCameraMatrix(
-        K, D, (w, h), alpha=0.5,  # 调整alpha值
-        newImgSize=(out_w, out_h)
-    )
-
-    undistorted = cv2.undistort(img, K, D, None, new_K)
-
-    return undistorted, new_K
-
-
-def main():
-    base_dir = os.path.dirname(__file__)
-    yaml_path = os.path.join(base_dir, "setting2.yaml")
-    img_path = os.path.join(base_dir, "input2.png")
-
-    # 读取图片
-    img = cv2.imread(img_path)
-    if img is None:
-        print(f"错误：无法读取图片 {img_path}")
-        return
-
-    # 读取相机参数
-    fx, fy, cx, cy, D, orig_w, orig_h = load_camera_params(yaml_path)
-
-    print("=" * 50)
-    print("相机参数:")
-    print(f"fx={fx:.2f}, fy={fy:.2f}, cx={cx:.2f}, cy={cy:.2f}")
-    print(f"畸变参数: k1={D[0]:.6f}, k2={D[1]:.6f}, k3={D[2]:.6f}, k4={D[3]:.6f}")
-    print(f"原始标定尺寸: {orig_w}x{orig_h}")
-    print(f"输入图片尺寸: {img.shape[1]}x{img.shape[0]}")
-    print("=" * 50)
-
-    # 方法1：使用fisheye方法（适用于鱼眼畸变）
-    print("\n方法1：使用fisheye去畸变")
-    for balance in [0.0, 0.3, 0.6, 1.0]:
-        undistorted1, K1 = undistort_fisheye_simple(
-            img, fx, fy, cx, cy, D, (orig_w, orig_h),
-            scale=1.0, balance=balance
-        )
-        out_path1 = os.path.join(base_dir, f"undistorted_fisheye_balance{balance:.1f}.png")
-        cv2.imwrite(out_path1, undistorted1)
-        print(f"  balance={balance:.1f}: 已保存到 {out_path1}")
-        print(f"    新内参矩阵:")
-        print(f"    [{K1[0, 0]:.2f}, 0, {K1[0, 2]:.2f}]")
-        print(f"    [0, {K1[1, 1]:.2f}, {K1[1, 2]:.2f}]")
-        print(f"    [0, 0, 1]")
-
-    # 方法2：使用标准方法（适用于轻微畸变）
-    print("\n方法2：使用标准去畸变")
-    for alpha in [0.0, 0.3, 0.6, 1.0]:
-        undistorted2, K2 = undistort_standard(
-            img, fx, fy, cx, cy, D, (orig_w, orig_h),
-            scale=1.0
-        )
-        out_path2 = os.path.join(base_dir, f"undistorted_standard_alpha{alpha:.1f}.png")
-        cv2.imwrite(out_path2, undistorted2)
-        print(f"  alpha={alpha:.1f}: 已保存到 {out_path2}")
-
-    # 创建对比图
-    print("\n创建对比图...")
-    h, w = img.shape[:2]
-
-    # 选择效果最好的一个进行对比
-    best_fisheye, _ = undistort_fisheye_simple(img, fx, fy, cx, cy, D, (orig_w, orig_h), balance=0.6)
-    best_standard, _ = undistort_standard(img, fx, fy, cx, cy, D, (orig_w, orig_h))
-
-    # 调整大小以便显示
-    if w > 1200:
-        scale_factor = 1200 / w
-        new_w = int(w * scale_factor)
-        new_h = int(h * scale_factor)
-        img_resized = cv2.resize(img, (new_w, new_h))
-        best_fisheye_resized = cv2.resize(best_fisheye, (new_w, new_h))
-        best_standard_resized = cv2.resize(best_standard, (new_w, new_h))
-    else:
-        img_resized = img
-        best_fisheye_resized = best_fisheye
-        best_standard_resized = best_standard
-
-    # 创建对比图像
-    top_row = np.hstack([img_resized, best_fisheye_resized])
-    bottom_row = np.hstack([best_standard_resized, np.zeros_like(best_standard_resized)])
-    comparison = np.vstack([top_row, bottom_row])
+    # 显示结果对比
+    comparison = np.hstack([
+        cv2.resize(img, (400, 300)),
+        cv2.resize(undistorted_original, (400, 300)),
+        cv2.resize(best_img, (400, 300))
+    ])
 
     # 添加标签
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(comparison, "原始图像", (10, 30), font, 1, (255, 255, 255), 2)
-    cv2.putText(comparison, "fisheye矫正 (balance=0.6)", (w // 2 + 10, 30), font, 1, (255, 255, 255), 2)
-    cv2.putText(comparison, "标准矫正", (10, h // 2 + 30), font, 1, (255, 255, 255), 2)
+    cv2.putText(comparison, "原始", (50, 50), font, 1, (0, 255, 0), 2)
+    cv2.putText(comparison, f"原始参数(评分:{original_undistorted_score:.2f})",
+                (450, 50), font, 1, (0, 255, 0), 2)
+    cv2.putText(comparison, f"优化参数(评分:{best_score:.2f})",
+                (850, 50), font, 1, (0, 255, 0), 2)
 
-    out_comparison = os.path.join(base_dir, "comparison.png")
-    cv2.imwrite(out_comparison, comparison)
+    # 保存结果
+    out_path = os.path.join(base_dir, "optimized_correction.png")
+    cv2.imwrite(out_path, best_img)
 
-    # # 显示结果
-    # cv2.imshow("对比: 原始 | fisheye矫正 | 标准矫正", comparison)
+    comparison_path = os.path.join(base_dir, "comparison_optimized.png")
+    cv2.imwrite(comparison_path, comparison)
+
+    # 保存优化后的参数
+    param_path = os.path.join(base_dir, "optimized_params.yaml")
+    with open(param_path, 'w') as f:
+        f.write(f"# 优化后的畸变参数\n")
+        f.write(f"Camera1.k1: {best_D[0]:.10f}\n")
+        f.write(f"Camera1.k2: {best_D[1]:.10f}\n")
+        f.write(f"Camera1.k3: {best_D[2]:.10f}\n")
+        f.write(f"Camera1.k4: {best_D[3]:.10f}\n")
+
+    print(f"\n优化后的图像已保存到: {out_path}")
+    print(f"对比图已保存到: {comparison_path}")
+    print(f"优化后的参数已保存到: {param_path}")
+
+    # 显示结果
+    # cv2.imshow("对比: 原始 | 原始参数去畸变 | 优化参数去畸变", comparison)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
-    #
-    # print(f"\n对比图已保存到: {out_comparison}")
-    # print("\n建议:")
-    # print("1. 查看生成的图片，选择效果最好的方法")
-    # print("2. 观察直线是否变直来判断矫正效果")
-    # print("3. 调整balance/alpha参数以获得最佳视野")
 
 
 if __name__ == "__main__":
-    main()
+    main_optimization()
