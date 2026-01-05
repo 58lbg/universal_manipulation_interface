@@ -435,8 +435,8 @@ def get_finger_canonical_polygon1(height=0.37):
     points = [[
         [384, 1287],
         [img_w - 267, 1287],
-        [384, 2704],
-        [img_w - 267, 2704]
+        [img_w - 267, 2704],
+        [384, 2704]
     ]]
     coords = pixel_coords_to_canonical(points, img_shape=resolution)
     return coords
