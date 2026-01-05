@@ -19,7 +19,7 @@ from tqdm import tqdm
 import cv2
 import av
 import numpy as np
-from umi.common.cv_util import draw_predefined_mask
+from umi.common.cv_util import draw_predefined_mask, draw_predefined_mask1
 
 
 # %%
@@ -97,7 +97,9 @@ def main(input_dir, map_path, docker_image, num_workers, max_lost_frames, timeou
                 timeout = duration_sec * timeout_multiple
                 
                 slam_mask = np.zeros((2028, 2704), dtype=np.uint8)
-                slam_mask = draw_predefined_mask(
+                # slam_mask = draw_predefined_mask(
+                #     slam_mask, color=255, mirror=True, gripper=False, finger=True)
+                slam_mask = draw_predefined_mask1(
                     slam_mask, color=255, mirror=True, gripper=False, finger=True)
                 cv2.imwrite(str(mask_write_path.absolute()), slam_mask)
 

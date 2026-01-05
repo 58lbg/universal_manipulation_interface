@@ -426,6 +426,21 @@ def get_finger_canonical_polygon(height=0.37, top_width=0.25, bottom_width=1.4):
     coords = pixel_coords_to_canonical(points, img_shape=resolution)
     return coords
 
+def get_finger_canonical_polygon1(height=0.37):
+    # image size
+    resolution = [2028, 2704]
+    img_h, img_w = resolution
+
+    # create polygon points for opencv API
+    points = [[
+        [1287, 384],
+        [1287, img_w - 267],
+        [2704, 384],
+        [2704, img_w - 267]
+    ]]
+    coords = pixel_coords_to_canonical(points, img_shape=resolution)
+    return coords
+
 def draw_predefined_mask(img, color=(0,0,0), mirror=True, gripper=True, finger=True, use_aa=False):
     all_coords = list()
     if mirror:
@@ -440,6 +455,23 @@ def draw_predefined_mask(img, color=(0,0,0), mirror=True, gripper=True, finger=T
         pts = np.round(pts).astype(np.int32)
         flag = cv2.LINE_AA if use_aa else cv2.LINE_8
         cv2.fillPoly(img,[pts], color=color, lineType=flag)
+    return img
+
+
+def draw_predefined_mask1(img, color=(0, 0, 0), mirror=True, gripper=True, finger=True, use_aa=False):
+    all_coords = list()
+    # if mirror:
+    #     all_coords.extend(get_mirror_canonical_polygon())
+    # if gripper:
+    #     all_coords.extend(get_gripper_canonical_polygon())
+    if finger:
+        all_coords.extend(get_finger_canonical_polygon1())
+
+    for coords in all_coords:
+        pts = canonical_to_pixel_coords(coords, img.shape[:2])
+        pts = np.round(pts).astype(np.int32)
+        flag = cv2.LINE_AA if use_aa else cv2.LINE_8
+        cv2.fillPoly(img, [pts], color=color, lineType=flag)
     return img
 
 def get_gripper_with_finger_mask(img, height=0.37, top_width=0.25, bottom_width=1.4, color=(0,0,0)):
