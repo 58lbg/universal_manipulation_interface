@@ -56,7 +56,7 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers):
                     'python', script_path,
                     '--input', str(video_path),
                     '--output', str(pkl_path),
-                    # '--intrinsics_json', camera_intrinsics,
+                    '--intrinsics_json', camera_intrinsics,
                     '--aruco_yaml', aruco_yaml,
                     '--num_workers', '1'
                 ]
