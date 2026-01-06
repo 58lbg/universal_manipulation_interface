@@ -44,6 +44,7 @@ def main(session_dir):
             '--output', str(slam_tag_path),
             '--keyframe_only'
         ]
+        print(f"cmd:{cmd}" )
         subprocess.run(cmd)
         
         # run gripper range calibration
