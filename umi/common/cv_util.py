@@ -303,7 +303,7 @@ def draw_charuco_board(board, dpi=300, padding_mm=15):
     board_img = board.generateImage(outSize=board_size_pixel, marginSize=padding_pixel)
     return board_img
 
-def get_gripper_width(tag_dict, left_id, right_id, nominal_z=0.072, z_tolerance=0.008):
+def get_gripper_width(tag_dict, left_id, right_id, nominal_z=0.1827, z_tolerance=0.02):
     zmax = nominal_z + z_tolerance
     zmin = nominal_z - z_tolerance
 
