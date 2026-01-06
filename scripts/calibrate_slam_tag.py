@@ -89,6 +89,8 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
     all_tx_slam_tag = np.array(all_tx_slam_tag)
 
     # find transform closest to the mean
+    print(f"shape: {all_tx_slam_tag.shape}")
+    print(all_tx_slam_tag)
     all_slam_tag_pos = all_tx_slam_tag[:,:3,3]
     median = geometric_median(all_slam_tag_pos)
     dists = np.linalg.norm((all_tx_slam_tag[:,:3,3] - median), axis=-1)
