@@ -84,7 +84,7 @@ def get_x_projection(tx_tag_this, tx_tag_other):
 @click.option('-o', '--output', default=None)
 @click.option('-to', '--tcp_offset', type=float, default=0.205, help="Distance from gripper tip to mounting screw")
 @click.option('-ts', '--tx_slam_tag', default=None, help="tx_slam_tag.json")
-@click.option('-nz', '--nominal_z', type=float, default=0.072, help="nominal Z value for gripper finger tag")
+@click.option('-nz', '--nominal_z', type=float, default=0.1826, help="nominal Z value for gripper finger tag")
 @click.option('-ml', '--min_episode_length', type=int, default=24)
 @click.option('--ignore_cameras', type=str, default=None, help="comma separated string of camera serials to ignore")
 def main(input, output, tcp_offset, tx_slam_tag,
@@ -311,8 +311,8 @@ def main(input, output, tcp_offset, tx_slam_tag,
         
         gripper_prob_map = dict()
         for gripper_id in range(max_gripper_id+1):
-            left_id = gripper_id * tag_per_gripper
-            right_id = left_id + 1
+            right_id = gripper_id * tag_per_gripper
+            left_id = right_id + 1
             left_prob = tag_stats[left_id]
             right_prob = tag_stats[right_id]
             gripper_prob = min(left_prob, right_prob)
@@ -654,8 +654,8 @@ def main(input, output, tcp_offset, tx_slam_tag,
                 dropped_camera_count[row['camera_serial']] += 1
                 continue
             
-            left_id = 6 * ghi
-            right_id = left_id + 1
+            right_id = 6 * ghi
+            left_id = right_id + 1
 
             gripper_cal_interp = None
             if ghi in gripper_id_gripper_cal_map:
@@ -778,7 +778,7 @@ def test():
     input = 'data_workspace/fold_cloth_20231214'
     fps = 59.94
     tx_slam_tag = None
-    nominal_z = 0.075
+    nominal_z = 0.1826
     min_episode_length = 24
     
 
