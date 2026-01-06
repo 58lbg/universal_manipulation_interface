@@ -696,6 +696,7 @@ def main(input, output, tcp_offset, tx_slam_tag,
             all_is_valid.append(is_step_valid)
 
         if len(all_cam_poses) != n_gripper_cams:
+            print(f"all_cam_poses : {len(all_cam_poses)}, n_gripper_cams : {n_gripper_cams}")
             print(f"Skipped demo {demo_idx}.")
             n_dropped_demos += 1
             continue
