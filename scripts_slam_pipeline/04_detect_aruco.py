@@ -77,7 +77,7 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers):
             pbar.update(len(completed))
 
     print("Done! Result:")
-    print([x.result() for x in completed])
+    # print([x.result() for x in completed])
 
 # %%
 if __name__ == "__main__":

@@ -79,8 +79,8 @@ def main(input, output, intrinsics_json, aruco_yaml, num_workers):
             results.append(result)
 
     # dump
-    #print(results)
-    pickle.dump(results, open(os.path.expanduser(output), 'w'))
+    print(results)
+    pickle.dump(results, open(os.path.expanduser(output), 'wb'))
 
 
 # %%

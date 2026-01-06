@@ -8,3 +8,6 @@ docker ps | grep "lbg"
 docker images | grep 'lbg'
 
 docker commit [选项] 容器ID或容器名 新镜像名[:标签]
+
+
+find 100GOPRO/ -name "tag_detection.pkl" -type f -exec rm -f {} +

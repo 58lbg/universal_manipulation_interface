@@ -33,7 +33,7 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
 
     # load
     df = pd.read_csv(csv_trajectory)
-    tag_detection_results = pickle.load(open(tag_detection, 'r'))
+    tag_detection_results = pickle.load(open(tag_detection, 'rb'))
 
     # filter pose
     is_valid = ~df['is_lost']
