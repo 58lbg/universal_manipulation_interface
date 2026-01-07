@@ -239,7 +239,7 @@ class DistortionCorrector:
 
 def main():
     base_dir = os.path.dirname(__file__)
-    yaml_path = os.path.join(base_dir, "setting1.yaml")
+    yaml_path = os.path.join(base_dir, "setting.yaml")
     img_path = os.path.join(base_dir, "input.png")
 
     try:
